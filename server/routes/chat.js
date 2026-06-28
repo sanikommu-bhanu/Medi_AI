@@ -166,6 +166,20 @@ router.post('/quick-chat', authenticateToken, async (req, res) => {
   res.json({ response: response.text, provider: response.provider });
 });
 
+// Delete conversation
+router.delete('/conversations/:id', authenticateToken, (req, res) => {
+  const db = getDb();
+  const result = db.prepare('DELETE FROM conversations WHERE id = ? AND user_id = ?').run(
+    req.params.id, req.user.id
+  );
+  
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'Conversation not found' });
+  }
+  
+  res.json({ message: 'Conversation deleted' });
+});
+
 // AI Memory
 router.get('/memory', authenticateToken, (req, res) => {
   const db = getDb();
