@@ -8,7 +8,8 @@ class AIService {
 
   async chat(messages, systemPrompt = '', userContext = {}) {
     const formattedMessages = this.formatMessages(messages, systemPrompt, userContext);
-    
+    let lastError = null;
+
     for (const provider of this.providers) {
       try {
         const response = await this.callProvider(provider, formattedMessages, systemPrompt);
@@ -18,10 +19,18 @@ class AIService {
         }
       } catch (err) {
         console.warn(`Provider ${provider} failed:`, err.message);
+        lastError = err.message;
         continue;
       }
     }
     
+    if (lastError && !lastError.includes('No ') && !lastError.includes('API key')) {
+      return {
+        text: `I'm sorry, my AI provider is currently experiencing issues. Error: ${lastError}`,
+        provider: 'fallback'
+      };
+    }
+
     return {
       text: this.getFallbackResponse(messages),
       provider: 'fallback'
@@ -62,7 +71,7 @@ class AIService {
     contents.push(...messages);
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
